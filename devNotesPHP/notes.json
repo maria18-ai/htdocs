@@ -1,0 +1,12 @@
+[
+    {
+        "id": 1,
+        "content": "Minha primeira nota",
+        "fixed": false
+    },
+    {
+        "id": 2,
+        "content": "Outra nota de exemplo",
+        "fixed": true
+    }
+]
