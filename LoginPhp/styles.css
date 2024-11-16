@@ -1,0 +1,53 @@
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    background-color: #00031f;
+}
+
+.container {
+    background: #fff;
+    padding: 30px;
+    border-radius: 5px;
+    box-shadow: 0 0 10px #00031f;
+    width: 400px;
+    text-align: center;
+}
+
+h2 {
+    color: #00031f;
+    font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+}
+
+input[type="text"],  input[type="email"], input[type="password"]{
+    padding: 10px;
+    margin: 10px 0;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+}
+
+button {
+    padding: 10px;
+    background-color: rgb(8, 8, 92);
+    color: white;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #368af7;
+}
+
+a {
+    text-decoration: none;
+    color: #216ed3;
+}
