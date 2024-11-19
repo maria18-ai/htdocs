@@ -1,12 +1,7 @@
-[
-    {
-        "id": 1,
-        "content": "Minha primeira nota",
+{
+    "3": {
+        "id": 1739,
+        "content": "trh",
         "fixed": false
-    },
-    {
-        "id": 2,
-        "content": "Outra nota de exemplo",
-        "fixed": true
     }
-]
+}

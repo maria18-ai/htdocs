@@ -1,31 +1,42 @@
 <?php
 session_start();
+include 'db_connection.php'; // Arquivo com a conexão
 
-// Verifica se o formulário foi enviado corretamente
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Captura os dados do formulário
-    $email = $_POST['email'] ?? ''; // Nome do campo 'email'
-    $password = $_POST['password'] ?? ''; // Nome do campo 'password'
+    $email = $_POST['email'] ?? '';
+    $password = $_POST['password'] ?? '';
 
-    // Credenciais simuladas
-    $email_correto = 'usuario@email.com';
-    $senha_correta = 'usuario@email.com';
+    // Consulta ao banco de dados
+    $sql = "SELECT * FROM users WHERE email = ?";
+    $stmt = $conn->prepare($sql);
 
-    // Valida as credenciais
-    if ($email === $email_correto && $password === $senha_correta) {
-        // Salva o email do usuário na sessão
-        $_SESSION['email'] = $email;
+    if ($stmt) {
+        $stmt->bind_param("s", $email);
+        $stmt->execute();
+        $result = $stmt->get_result();
 
-        // Redireciona para a página principal
-        header("Location: /devNotesPHP/index.php");
-        exit();
+        if ($result->num_rows > 0) {
+            $user = $result->fetch_assoc();
+
+            // Verifica a senha usando password_verify
+            if (password_verify($password, $user['password'])) {
+                $_SESSION['email'] = $email;
+                header("Location: /devNotesPHP/index.php");
+                exit();
+            } else {
+                echo "E-mail ou senha incorretos.";
+                echo "<br><a href='login.php'>Tentar novamente</a>";
+            }
+        } else {
+            echo "E-mail ou senha incorretos.";
+            echo "<br><a href='login.php'>Tentar novamente</a>";
+        }
+
+        $stmt->close(); // Fecha o statement após a execução
     } else {
-        // Exibe mensagem de erro e link para voltar ao login
-        echo "E-mail ou senha incorretos.";
-        echo "<br><a href='login.php'>Tentar novamente</a>";
+        echo "Erro na preparação da consulta: " . $conn->error;
     }
 } else {
-    // Caso a página seja acessada diretamente, redireciona para o login
     header("Location: login.php");
     exit();
 }

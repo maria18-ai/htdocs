@@ -9,13 +9,14 @@
 <body>
     <div class="container">
         <h2>Cadastro</h2>
-        <form action="registrar.php" method="POST">
-            <input type="text" name="username" placeholder="Nome de Usuário" required>
-            <input type= "email" name= "email" placeholder= "E-mail" required>
-            <input type="password" name="password" placeholder="Senha" required>
-            <button type="submit">Cadastrar</button>
-        </form>
-        <p>Já tem uma conta? <a href="index.php">Faça login</a></p>
+    <form action="process_cadastro.php" method="POST">
+        <input type="text" name="username" placeholder="Nome de Usuário" required>
+        <input type="email" name="email" placeholder="E-mail" required>
+        <input type="password" name="password" placeholder="Senha" required>
+        <button type="submit">Cadastrar</button>
+    </form>
+
+        <p>Já tem uma conta? <a href="indexLogin.php">Faça login</a></p>
     </div>
 </body>
 </html>
