@@ -1,57 +1,64 @@
 <?php
-// Definindo o caminho para o arquivo JSON
-$notesFile = 'notes.json';
+session_start();
+include '../LoginPhp/db_connection.php';
 
-// Verifica se o arquivo existe, se não, cria um arquivo vazio
-if (!file_exists($notesFile)) {
-    file_put_contents($notesFile, json_encode([]));
+if (!isset($_SESSION['email'])) {
+    header("Location: ../LoginPhp/indexLogin.php");
+    exit();
 }
 
-// Função para carregar as notas do arquivo JSON
-function getNotes() {
-    global $notesFile;
-    return json_decode(file_get_contents($notesFile), true) ?: [];
-}
+$email = $_SESSION['email'];
+$sql = "SELECT id FROM users WHERE email = ?";
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("s", $email);
+$stmt->execute();
+$result = $stmt->get_result();
+$user = $result->fetch_assoc();
+$user_id = $user['id'];
 
-// Função para salvar as notas no arquivo JSON
-function saveNotes($notes) {
-    global $notesFile;
-    file_put_contents($notesFile, json_encode($notes, JSON_PRETTY_PRINT));
-}
-
-// Adiciona uma nova nota
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add') {
-    $notes = getNotes();
-    $newNote = [
-        'id' => rand(1, 5000), // Gerando um ID aleatório
-        'content' => $_POST['content'],
-        'fixed' => false
-    ];
-    $notes[] = $newNote;
-    saveNotes($notes);
-    exit; // Encerra o script após adicionar a nota
-}
-
-// Atualiza o conteúdo de uma nota
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update') {
-    $notes = getNotes();
-    foreach ($notes as &$note) {
-        if ($note['id'] == $_POST['id']) {
-            $note['content'] = $_POST['content'];
-            break;
-        }
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if ($_POST['action'] === 'add') {
+        $content = $_POST['content'];
+        $sql = "INSERT INTO notes (user_id, content) VALUES (?, ?)";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("is", $user_id, $content);
+        $stmt->execute();
+        exit;
+    } elseif ($_POST['action'] === 'delete') {
+        $note_id = $_POST['id'];
+        $sql = "DELETE FROM notes WHERE id = ? AND user_id = ?";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("ii", $note_id, $user_id);
+        $stmt->execute();
+        exit;
+    } elseif ($_POST['action'] === 'fix') {
+        $note_id = $_POST['id'];
+        $sql = "UPDATE notes SET fixed = NOT fixed WHERE id = ? AND user_id = ?";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("ii", $note_id, $user_id);
+        $stmt->execute();
+        exit;
     }
-    saveNotes($notes);
-    exit;
 }
 
-// Função para remover uma nota
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete') {
-    $notes = getNotes();
-    $notes = array_filter($notes, fn($note) => $note['id'] != $_POST['id']);
-    saveNotes($notes);
-    exit;
+$search = '';
+if (isset($_GET['search'])) {
+    $search = trim($_GET['search']); // Remover espaços extras
+    $search = mysqli_real_escape_string($conn, $search); // Prevenir injeção SQL
+
+    // Usar a pesquisa no SQL com o LIKE e os '%' apenas no momento certo
+    $sql = "SELECT * FROM notes WHERE user_id = ? AND content LIKE ?";
+    $search = '%' . $search . '%'; // Aqui é onde adicionamos os '%' para realizar a busca
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("is", $user_id, $search);
+} else {
+    $sql = "SELECT * FROM notes WHERE user_id = ? ORDER BY fixed DESC";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("i", $user_id);
 }
+
+$stmt->execute();
+$notes = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 ?>
 
 <!DOCTYPE html>
@@ -59,80 +66,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Notes</title>
-    
+    <link rel="stylesheet" href="styles.css">
+    <title>Notas</title>
 </head>
 <body>
     <header>
-        <h1>Notas</h1>
-        <div id="search-container">
-            <input type="text" id="search-input" placeholder="Busque por uma nota">
+        <h1>Suas Notas</h1>
+        <div>
+            <input type="text" id="note-content" placeholder="Nova nota">
+            <button onclick="addNote()">Adicionar</button>
         </div>
-        <div id="add-note-container">
-            <input type="text" id="note-content" placeholder="O que deseja anotar">
-            <button class="add-note">Adicionar</button>
+        <div>
+            <input type="text" id="search" placeholder="Buscar notas" value="<?= htmlspecialchars($search) ?>" oninput="searchNotes()">
         </div>
     </header>
-
-    <div id="notes-container">
-        <?php
-        $notes = getNotes();
-        if (count($notes) > 0) {
-            foreach ($notes as $note):
-        ?>
-        <div class="note" data-id="<?= $note['id'] ?>" id="note-<?= $note['id'] ?>">
-            <textarea><?= htmlspecialchars($note['content']) ?></textarea>
-            <button class="pin" onclick="toggleFixed(<?= $note['id'] ?>)">Fixar</button>
-            <button class="delete" onclick="deleteNote(<?= $note['id'] ?>)">Excluir</button>
-        </div>
-        <?php endforeach; } ?>
+    <div>
+        <?php foreach ($notes as $note): ?>
+            <div>
+                <p><?= htmlspecialchars($note['content']) ?></p>
+                <button onclick="deleteNote(<?= $note['id'] ?>)">Excluir</button>
+                <button onclick="fixNote(<?= $note['id'] ?>)">
+                    <?= $note['fixed'] ? 'Desafixar' : 'Fixar' ?>
+                </button>
+            </div>
+        <?php endforeach; ?>
     </div>
-
     <script>
-        // Função para adicionar uma nova nota
-        document.querySelector('.add-note').addEventListener('click', function() {
-            const content = document.querySelector('#note-content').value;
-            if (content) {
-                fetch('index.php', {
-                    method: 'POST',
-                    body: new URLSearchParams({
-                        action: 'add',
-                        content: content
-                    })
-                }).then(() => location.reload());
-            }
-        });
-
-        // Função para fixar/desfixar uma nota
-        function toggleFixed(id) {
-            const note = document.querySelector(`#note-${id}`);
-            note.classList.toggle('fixed');
-            updateNote(id, note.querySelector('textarea').value);
-        }
-
-        // Função para atualizar uma nota
-        function updateNote(id, content) {
+        function addNote() {
+            const content = document.getElementById('note-content').value;
             fetch('index.php', {
                 method: 'POST',
-                body: new URLSearchParams({
-                    action: 'update',
-                    id: id,
-                    content: content
-                })
-            });
+                body: new URLSearchParams({ action: 'add', content: content })
+            }).then(() => location.reload());
         }
 
-        // Função para excluir uma nota
         function deleteNote(id) {
-            if (confirm('Você tem certeza que deseja excluir esta nota?')) {
-                fetch('index.php', {
-                    method: 'POST',
-                    body: new URLSearchParams({
-                        action: 'delete',
-                        id: id
-                    })
-                }).then(() => location.reload());
-            }
+            fetch('index.php', {
+                method: 'POST',
+                body: new URLSearchParams({ action: 'delete', id: id })
+            }).then(() => location.reload());
+        }
+
+        function fixNote(id) {
+            fetch('index.php', {
+                method: 'POST',
+                body: new URLSearchParams({ action: 'fix', id: id })
+            }).then(() => location.reload());
+        }
+
+        function searchNotes() {
+            const search = document.getElementById('search').value;
+            window.location.search = `search=${encodeURIComponent(search)}`; // Passa apenas o valor codificado
         }
     </script>
 </body>
