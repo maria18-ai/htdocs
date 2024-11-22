@@ -43,12 +43,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $search = '';
 if (isset($_GET['search'])) {
-    $search = trim($_GET['search']); // Remover espaços extras
-    $search = mysqli_real_escape_string($conn, $search); // Prevenir injeção SQL
+    $search = trim($_GET['search']); 
+    $search = mysqli_real_escape_string($conn, $search); 
 
-    // Usar a pesquisa no SQL com o LIKE e os '%' apenas no momento certo
+    // usar a pesquisa no SQL com o LIKE e os '%' apenas no momento certo
     $sql = "SELECT * FROM notes WHERE user_id = ? AND content LIKE ?";
-    $search = '%' . $search . '%'; // Aqui é onde adicionamos os '%' para realizar a busca
+    $search = '%' . $search . '%'; 
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("is", $user_id, $search);
 } else {
@@ -66,31 +66,35 @@ $notes = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="style.css">
     <title>Notas</title>
 </head>
 <body>
     <header>
         <h1>Suas Notas</h1>
-        <div>
+        <div class="add-note-container">
             <input type="text" id="note-content" placeholder="Nova nota">
             <button onclick="addNote()">Adicionar</button>
         </div>
-        <div>
+        <div class="search-container">
             <input type="text" id="search" placeholder="Buscar notas" value="<?= htmlspecialchars($search) ?>" oninput="searchNotes()">
         </div>
     </header>
-    <div>
-        <?php foreach ($notes as $note): ?>
-            <div>
-                <p><?= htmlspecialchars($note['content']) ?></p>
-                <button onclick="deleteNote(<?= $note['id'] ?>)">Excluir</button>
-                <button onclick="fixNote(<?= $note['id'] ?>)">
-                    <?= $note['fixed'] ? 'Desafixar' : 'Fixar' ?>
-                </button>
-            </div>
-        <?php endforeach; ?>
-    </div>
+
+    <main class="notes-container">
+    <?php foreach ($notes as $note): ?>
+        <div class="note <?= $note['fixed'] ? 'fixed' : '' ?>">
+            <p><?= htmlspecialchars($note['content']) ?></p>
+            <div class="button-container">
+            <button class="delete-button" onclick="deleteNote(<?= $note['id'] ?>)">Excluir</button>
+            <button class="fix-button" onclick="fixNote(<?= $note['id'] ?>)">
+                <?= $note['fixed'] ? 'Desafixar' : 'Fixar' ?>
+            </button>
+            </div>           
+        </div>
+    <?php endforeach; ?>
+</main>
+
     <script>
         function addNote() {
             const content = document.getElementById('note-content').value;
@@ -116,7 +120,7 @@ $notes = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
         function searchNotes() {
             const search = document.getElementById('search').value;
-            window.location.search = `search=${encodeURIComponent(search)}`; // Passa apenas o valor codificado
+            window.location.search = `search=${encodeURIComponent(search)}`;
         }
     </script>
 </body>
